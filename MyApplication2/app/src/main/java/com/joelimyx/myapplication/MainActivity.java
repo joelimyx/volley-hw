@@ -30,12 +30,14 @@ public class MainActivity extends AppCompatActivity {
     Button mButton3;
     public static final StringBuilder GET_URL_BUILDER = new StringBuilder("http://api.walmartlabs.com/v1/search?format=json&apiKey=xp8nz8badbdjrn2pb9r7bsub&query=");
 
-    RequestQueue mRequestQueue = Volley.newRequestQueue(this);
+    RequestQueue mRequestQueue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mRequestQueue = Volley.newRequestQueue(getApplicationContext());
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerview);
         mButton1 = (Button) findViewById(R.id.button1);
@@ -43,39 +45,42 @@ public class MainActivity extends AppCompatActivity {
         mButton3 = (Button) findViewById(R.id.button3);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL,false));
         ConnectivityManager manager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-        final NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+        final NetworkInfo info = manager.getActiveNetworkInfo();
+
         View.OnClickListener listener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String temp="";
-                switch (view.getId()){
-                    case R.id.button1:
-                        temp = "cereal";
-                        break;
-                    case R.id.button2:
-                        temp = "tea";
-                        break;
-                    case R.id.button3:
-                        temp = "chocolate";
-                        break;
+                if (info!=null && info.isConnected()) {
+                    switch (view.getId()) {
+                        case R.id.button1:
+                            temp = "cereal";
+                            break;
+                        case R.id.button2:
+                            temp = "tea";
+                            break;
+                        case R.id.button3:
+                            temp = "chocolate";
+                            break;
+                    }
+                    getResponse(GET_URL_BUILDER.toString() + temp);
                 }
-                getResponse(GET_URL_BUILDER.toString()+temp);
             }
         };
+
         mButton1.setOnClickListener(listener);
         mButton2.setOnClickListener(listener);
         mButton3.setOnClickListener(listener);
     }
 
     public void getResponse(String url){
-
+        mRequestQueue.cancelAll("TAG");
         JsonObjectRequest request = new JsonObjectRequest(
                 Request.Method.GET,
                 url, null, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
-                Gson gson = new Gson();
-                Walmart walmart = gson.fromJson(response.toString(),Walmart.class);
+                Walmart walmart = new Gson().fromJson(response.toString(),Walmart.class);
                 mRecyclerView.setAdapter(new MainAdapter(walmart.getItems()));
             }
         }, new Response.ErrorListener() {
@@ -84,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
                 error.printStackTrace();
             }
         });
+        request.setTag("TAG");
         mRequestQueue.add(request);
     }
 }
